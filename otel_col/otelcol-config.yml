@@ -1,0 +1,58 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'rabbitmq'
+          static_configs:
+            - targets: ['rabbitmq:15692']
+        - job_name: 'otel'
+          static_configs:
+            - targets: ['0.0.0.0:8888']
+                
+exporters:
+  otlp/ls:
+    endpoint: ingest.lightstep.com:443
+    headers: 
+      "lightstep-access-token": '${LIGHTSTEP_ACCESS_TOKEN}'
+
+processors:
+  batch:
+  # resourcedetection:
+  #     detectors: [system]
+  #     system:
+  #       hostname_sources: [os]
+
+# extensions:
+#    health_check:
+#    opamp:
+#      server:
+#        ws:
+#          endpoint: "wss://opamp.lightstep.com/v1/opamp"
+#          headers:
+#            Authorization: "bearer <API KEY>"
+
+
+service:
+  telemetry:
+    metrics:
+      address: 0.0.0.0:8888
+  # extensions: [health_check, opamp]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/ls]
+
+    metrics:
+        receivers: [otlp, prometheus] # mysql, redis, hostmetrics, rabbitmq [requires mgmt plugin]
+        processors: [batch]
+        exporters: [otlp/ls]
+    
+    logs:
+        receivers: [otlp] 
+        processors: [batch]
+        exporters: [otlp/ls]

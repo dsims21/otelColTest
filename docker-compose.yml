@@ -1,0 +1,36 @@
+version: "3"
+services:
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.100.0
+    restart: unless-stopped
+    env_file: .env 
+    ports:
+      - "4317:4317" 
+    command: [ "--config=/etc/otelcol-config.yml" ]
+    volumes:
+      - ./otel_col/otelcol-config.yml:/etc/otelcol-config.yml
+  rabbitmq:
+    image: rabbitmq:3.13.1-management-alpine
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "15692:15692"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+  springboot-app:
+    build: ./springboot
+    ports:
+      - "8080:8080"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
+    depends_on:
+      - otelcol
+
+volumes:
+  default:
+
+networks:
+  default:
+
